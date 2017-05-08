@@ -42,6 +42,7 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
 @property (nonatomic, strong) NSLayoutConstraint *typingIndicatorViewHC;
 @property (nonatomic, strong) NSLayoutConstraint *autoCompletionViewHC;
 @property (nonatomic, strong) NSLayoutConstraint *keyboardHC;
+@property (nonatomic, strong) NSLayoutConstraint *pinnedViewHC;
 
 // YES if the user is moving the keyboard with a gesture
 @property (nonatomic, assign, getter = isMovingKeyboard) BOOL movingKeyboard;
@@ -66,7 +67,14 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
 @synthesize textInputbar = _textInputbar;
 @synthesize autoCompletionView = _autoCompletionView;
 @synthesize autoCompleting = _autoCompleting;
+@synthesize showingPinnedView = _showingPinnedView;
 @synthesize scrollViewProxy = _scrollViewProxy;
+@synthesize pinnedView = _pinnedView;
+@synthesize pinnedViewIcon = _pinnedViewIcon;
+@synthesize pinnedViewCloseButton = _pinnedViewCloseButton;
+@synthesize pinnedViewSideBar = _pinnedViewSideBar;
+@synthesize pinnedViewUserNameLabel = _pinnedViewUserNameLabel;
+@synthesize pinnedViewMessageLabel = _pinnedViewMessageLabel;
 @synthesize presentedInPopover = _presentedInPopover;
 
 #pragma mark - Initializer
@@ -173,6 +181,7 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
     [super viewDidLoad];
     
     [self.view addSubview:self.scrollViewProxy];
+    [self.view addSubview:self.pinnedView];
     [self.view addSubview:self.autoCompletionView];
     [self.view addSubview:self.typingIndicatorProxyView];
     [self.view addSubview:self.textInputbar];
@@ -276,6 +285,17 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
     return _collectionView;
 }
 
+- (UIView *)pinnedView
+{
+    if (!_pinnedView) {
+        _pinnedView = [[UIView alloc] initWithFrame:CGRectZero];
+        _pinnedView.translatesAutoresizingMaskIntoConstraints = NO;
+        _pinnedView.layer.cornerRadius = 5;
+        _pinnedView.layer.masksToBounds = true;
+        _pinnedView.backgroundColor = [UIColor colorWithHexString:@"#eaf1fe"];
+    }
+    return _pinnedView;
+}
 - (UITableView *)autoCompletionView
 {
     if (!_autoCompletionView) {
@@ -436,6 +456,7 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
     scrollViewHeight -= self.keyboardHC.constant;
     scrollViewHeight -= self.textInputbarHC.constant;
     scrollViewHeight -= self.autoCompletionViewHC.constant;
+    scrollViewHeight -= self.pinnedViewHC.constant;
     scrollViewHeight -= self.typingIndicatorViewHC.constant;
     
     if (scrollViewHeight < 0) return 0;
@@ -1608,6 +1629,124 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
     }
 }
 
+#pragma mark - Pinned View
+
+- (void)showPinnedView
+{
+    [self slk_showPinnedView:YES];
+}
+- (void)hidePinnedView
+{
+    [self slk_showPinnedView:NO];
+}
+- (void)slk_hidePinnedViewIfNeeded
+{
+    if (self.isShowingPinnedView) {
+        [self slk_showPinnedView:NO];
+    }
+}
+
+- (void)slk_showPinnedView:(BOOL)show
+{
+    self.showingPinnedView = show;
+    
+    CGFloat viewHeight = show ? 90 : 0.0;
+    
+    if (self.pinnedViewHC.constant == viewHeight) {
+        return;
+    }
+    
+    CGFloat contentViewHeight = self.scrollViewHC.constant + self.pinnedViewHC.constant;
+    
+    // On iPhone, the auto-completion view can't extend beyond the content view height
+    if (SLK_IS_IPHONE && viewHeight > contentViewHeight) {
+        viewHeight = contentViewHeight;
+    }
+    
+    self.pinnedViewHC.constant = viewHeight;
+    
+    [self.view slk_animateLayoutIfNeededWithBounce:self.bounces
+                                           options:UIViewAnimationOptionCurveEaseInOut|UIViewAnimationOptionLayoutSubviews|UIViewAnimationOptionBeginFromCurrentState
+                                        animations:NULL];
+    NSLayoutConstraint *oldConstraint = [self.view slk_constraintForAttribute:NSLayoutAttributeTop firstItem:self.tableView secondItem:self.view];
+    [self.view removeConstraint:oldConstraint];
+    NSLayoutConstraint *topConstraint = [NSLayoutConstraint constraintWithItem:self.tableView attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeTop multiplier:1 constant:(show == true) ? viewHeight : 0];
+    [self.view addConstraint:topConstraint];
+    [self.view layoutIfNeeded];
+    if (show == true) {
+        
+        // Adding side bar
+        _pinnedViewSideBar = [[UIView alloc] initWithFrame:CGRectZero];
+        _pinnedViewSideBar.backgroundColor = [UIColor colorWithHexString:@"#d8e0ef"];
+        _pinnedViewSideBar.translatesAutoresizingMaskIntoConstraints = NO;
+        [_pinnedView addSubview:_pinnedViewSideBar];
+        [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewSideBar attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:_pinnedView attribute:NSLayoutAttributeTop multiplier:1 constant:0]];
+        [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewSideBar attribute:NSLayoutAttributeLeading relatedBy:NSLayoutRelationEqual toItem:_pinnedView attribute:NSLayoutAttributeLeading multiplier:1 constant:0]];
+        [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewSideBar attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:_pinnedView attribute:NSLayoutAttributeHeight multiplier:1 constant:0]];
+        [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewSideBar attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeWidth multiplier:1 constant:50]];
+        
+        // Adding user profile image view
+        _pinnedViewIcon = [[UIImageView alloc] initWithFrame:CGRectZero];
+        _pinnedViewIcon.image = [UIImage imageNamed:@"pin_icon"];
+        _pinnedViewIcon.translatesAutoresizingMaskIntoConstraints = NO;
+        [_pinnedViewSideBar addSubview:_pinnedViewIcon];
+        [_pinnedViewSideBar addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewIcon attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:_pinnedViewSideBar attribute:NSLayoutAttributeTop multiplier:1 constant:15]];
+        [_pinnedViewSideBar addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewIcon attribute:NSLayoutAttributeLeading relatedBy:NSLayoutRelationEqual toItem:_pinnedViewSideBar attribute:NSLayoutAttributeLeading multiplier:1 constant:15]];
+        [_pinnedViewSideBar addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewIcon attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeHeight multiplier:1 constant:20]];
+        [_pinnedViewSideBar addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewIcon attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeWidth multiplier:1 constant:20]];
+        
+        // Adding close button
+        _pinnedViewCloseButton = [[UIButton alloc] initWithFrame:CGRectZero];
+        [_pinnedViewCloseButton addTarget:self action:@selector(closeButtonOnPinnedViewClicked) forControlEvents:UIControlEventTouchUpInside];
+        [_pinnedViewCloseButton setImage:[UIImage imageNamed:@"close icon"] forState:UIControlStateNormal];
+        _pinnedViewCloseButton.translatesAutoresizingMaskIntoConstraints = NO;
+        [_pinnedView addSubview:_pinnedViewCloseButton];
+        [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewCloseButton attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:_pinnedView attribute:NSLayoutAttributeTop multiplier: 1 constant: 15]];
+        [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewCloseButton attribute:NSLayoutAttributeTrailing relatedBy:NSLayoutRelationEqual toItem:_pinnedView attribute:NSLayoutAttributeTrailing multiplier: 1 constant: -10]];
+        [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewCloseButton attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeHeight multiplier:1 constant: 20]];
+        [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewCloseButton attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeWidth multiplier:1 constant: 20]];
+        
+        
+        // Adding user name label
+        _pinnedViewUserNameLabel = [[UILabel alloc] initWithFrame:CGRectZero];
+        _pinnedViewUserNameLabel.backgroundColor = [UIColor clearColor];
+        _pinnedViewUserNameLabel.textColor = [UIColor colorWithHexString:@"#593a79"];
+        _pinnedViewUserNameLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
+        _pinnedViewUserNameLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        [_pinnedView addSubview:_pinnedViewUserNameLabel];
+        [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewUserNameLabel attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:_pinnedView attribute:NSLayoutAttributeTop multiplier:1 constant:12]];
+        [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewUserNameLabel attribute:NSLayoutAttributeLeading relatedBy:NSLayoutRelationEqual toItem:_pinnedViewSideBar attribute:NSLayoutAttributeTrailing multiplier:1 constant:15]];
+        [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewUserNameLabel attribute:NSLayoutAttributeTrailing relatedBy:NSLayoutRelationEqual toItem:_pinnedView attribute:NSLayoutAttributeTrailing multiplier:1 constant:-15]];
+        [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewUserNameLabel attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeHeight multiplier:1 constant:21]];
+        
+        // Adding message label
+        _pinnedViewMessageLabel = [[DTAttributedLabel alloc] initWithFrame:CGRectZero];
+        _pinnedViewMessageLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        _pinnedViewMessageLabel.backgroundColor = [UIColor clearColor];
+        _pinnedViewMessageLabel.shouldDrawLinks = true;
+        [_pinnedViewMessageLabel relayoutText];
+        [_pinnedViewMessageLabel reloadInputViews];
+        _pinnedViewMessageLabel.numberOfLines = 2;
+        _pinnedViewMessageLabel.layoutFrameHeightIsConstrainedByBounds = false;
+        UITapGestureRecognizer *tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(pinnedViewTapped)];
+        tapGesture.delegate = self;
+        _pinnedViewMessageLabel.userInteractionEnabled = true;
+        [_pinnedViewMessageLabel addGestureRecognizer:tapGesture];
+
+        [_pinnedView addSubview:_pinnedViewMessageLabel];
+        [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewMessageLabel attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:_pinnedViewUserNameLabel attribute:NSLayoutAttributeBottom multiplier:1 constant:5]];
+        [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewMessageLabel attribute:NSLayoutAttributeLeading relatedBy:NSLayoutRelationEqual toItem:_pinnedViewSideBar attribute:NSLayoutAttributeTrailing multiplier:1 constant:15]];
+        [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewMessageLabel attribute:NSLayoutAttributeTrailing relatedBy:NSLayoutRelationEqual toItem:_pinnedView attribute:NSLayoutAttributeTrailing multiplier:1 constant:-15]];
+        [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewMessageLabel attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeHeight multiplier:1 constant:40]];
+        
+    } else {
+        [self.pinnedViewIcon removeFromSuperview];
+        [self.pinnedViewSideBar removeFromSuperview];
+        [self.pinnedViewCloseButton removeFromSuperview];
+        [self.pinnedViewUserNameLabel removeFromSuperview];
+        [self.pinnedViewMessageLabel removeFromSuperview];
+    }
+}
 
 #pragma mark - Auto-Completion Text Processing
 
@@ -2225,6 +2364,7 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
 - (void)slk_setupViewConstraints
 {
     NSDictionary *views = @{@"scrollView": self.scrollViewProxy,
+                            @"pinnedView": self.pinnedView,
                             @"autoCompletionView": self.autoCompletionView,
                             @"typingIndicatorView": self.typingIndicatorProxyView,
                             @"textInputbar": self.textInputbar,
@@ -2232,12 +2372,15 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
     
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[scrollView(0@750)][typingIndicatorView(0)]-0@999-[textInputbar(0)]|" options:0 metrics:nil views:views]];
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-(>=0)-[autoCompletionView(0@750)][typingIndicatorView]" options:0 metrics:nil views:views]];
+    [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-10-[pinnedView(0@750)]" options:0 metrics:nil views:views]];
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[scrollView]|" options:0 metrics:nil views:views]];
+    [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-10-[pinnedView]-10-|" options:0 metrics:nil views:views]];
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[autoCompletionView]|" options:0 metrics:nil views:views]];
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[typingIndicatorView]|" options:0 metrics:nil views:views]];
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[textInputbar]|" options:0 metrics:nil views:views]];
     
     self.scrollViewHC = [self.view slk_constraintForAttribute:NSLayoutAttributeHeight firstItem:self.scrollViewProxy secondItem:nil];
+    self.pinnedViewHC = [self.view slk_constraintForAttribute:NSLayoutAttributeHeight firstItem:self.pinnedView secondItem:nil];
     self.autoCompletionViewHC = [self.view slk_constraintForAttribute:NSLayoutAttributeHeight firstItem:self.autoCompletionView secondItem:nil];
     self.typingIndicatorViewHC = [self.view slk_constraintForAttribute:NSLayoutAttributeHeight firstItem:self.typingIndicatorProxyView secondItem:nil];
     self.textInputbarHC = [self.view slk_constraintForAttribute:NSLayoutAttributeHeight firstItem:self.textInputbar secondItem:nil];
