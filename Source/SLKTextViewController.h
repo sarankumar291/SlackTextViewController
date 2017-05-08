@@ -19,6 +19,7 @@
 #import "UIView+SLKAdditions.h"
 
 #import "SLKUIConstants.h"
+#import <DTCoreText/DTCoreText.h>
 
 NS_ASSUME_NONNULL_BEGIN
 

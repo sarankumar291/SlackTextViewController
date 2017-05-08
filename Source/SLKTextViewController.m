@@ -23,7 +23,7 @@ NSString * const SLKKeyboardWillHideNotification =      @"SLKKeyboardWillHideNot
 NSString * const SLKKeyboardDidHideNotification =       @"SLKKeyboardDidHideNotification";
 
 CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
-
+@class DTAttributedLabel;
 @interface SLKTextViewController ()
 {
     CGPoint _scrollViewOffsetBeforeDragging;
@@ -292,7 +292,7 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
         _pinnedView.translatesAutoresizingMaskIntoConstraints = NO;
         _pinnedView.layer.cornerRadius = 5;
         _pinnedView.layer.masksToBounds = true;
-        _pinnedView.backgroundColor = [UIColor colorWithHexString:@"#eaf1fe"];
+        _pinnedView.backgroundColor = [UIColor colorWithRed:(234/255) green:(241/255) blue:(254/255) alpha:1];
     }
     return _pinnedView;
 }
@@ -1677,7 +1677,7 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
         
         // Adding side bar
         _pinnedViewSideBar = [[UIView alloc] initWithFrame:CGRectZero];
-        _pinnedViewSideBar.backgroundColor = [UIColor colorWithHexString:@"#d8e0ef"];
+        _pinnedViewSideBar.backgroundColor = [UIColor colorWithRed:(216/255) green:(224/255) blue:(239/255) alpha:1];
         _pinnedViewSideBar.translatesAutoresizingMaskIntoConstraints = NO;
         [_pinnedView addSubview:_pinnedViewSideBar];
         [_pinnedView addConstraint:[NSLayoutConstraint constraintWithItem:_pinnedViewSideBar attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:_pinnedView attribute:NSLayoutAttributeTop multiplier:1 constant:0]];
@@ -1710,7 +1710,7 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
         // Adding user name label
         _pinnedViewUserNameLabel = [[UILabel alloc] initWithFrame:CGRectZero];
         _pinnedViewUserNameLabel.backgroundColor = [UIColor clearColor];
-        _pinnedViewUserNameLabel.textColor = [UIColor colorWithHexString:@"#593a79"];
+        _pinnedViewUserNameLabel.textColor = [UIColor colorWithRed:(89/255) green:(58/255) blue:(121/255) alpha:1];
         _pinnedViewUserNameLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
         _pinnedViewUserNameLabel.translatesAutoresizingMaskIntoConstraints = NO;
         [_pinnedView addSubview:_pinnedViewUserNameLabel];
