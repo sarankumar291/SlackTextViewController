@@ -417,6 +417,9 @@ NS_CLASS_AVAILABLE_IOS(7_0) @interface SLKTextViewController : UIViewController 
 /** YES if the autocompletion mode is active. */
 @property (nonatomic, readonly, getter = isAutoCompleting) BOOL autoCompleting;
 
+/** YES if the pinned view is shown. */
+@property (nonatomic, getter = isShowingPinnedView) BOOL showingPinnedView;
+
 /** The recently found prefix symbol used as prefix for autocompletion mode. */
 @property (nonatomic, copy) NSString *_Nullable foundPrefix;
 
@@ -555,6 +558,19 @@ NS_CLASS_AVAILABLE_IOS(7_0) @interface SLKTextViewController : UIViewController 
  */
 - (void)cacheTextView;
 
+#pragma mark - Pinned view
+
+- (void)showPinnedView;
+- (void)hidePinnedView;
+- (void)closeButtonOnPinnedViewClicked;
+- (void)pinnedViewTapped;
+
+@property (nonatomic, strong) UIView *pinnedView;
+@property (nonatomic, strong) UIView *pinnedViewSideBar;
+@property (nonatomic, strong) UIButton *pinnedViewCloseButton;
+@property (nonatomic, strong) UIImageView *pinnedViewIcon;
+@property (nonatomic, strong) UILabel *pinnedViewUserNameLabel;
+@property (nonatomic, strong) DTAttributedLabel *pinnedViewMessageLabel;
 
 #pragma mark - Customization
 ///------------------------------------------------
