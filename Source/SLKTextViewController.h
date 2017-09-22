@@ -421,6 +421,9 @@ NS_CLASS_AVAILABLE_IOS(7_0) @interface SLKTextViewController : UIViewController 
 /** YES if the pinned view is shown. */
 @property (nonatomic, getter = isShowingPinnedView) BOOL showingPinnedView;
 
+/** YES if the accessory view is shown. */
+@property (nonatomic, getter = isShowingAccessoryView) BOOL showingAccessoryView;
+
 /** The recently found prefix symbol used as prefix for autocompletion mode. */
 @property (nonatomic, copy) NSString *_Nullable foundPrefix;
 
@@ -572,6 +575,14 @@ NS_CLASS_AVAILABLE_IOS(7_0) @interface SLKTextViewController : UIViewController 
 @property (nonatomic, strong) UIImageView *pinnedViewIcon;
 @property (nonatomic, strong) UILabel *pinnedViewUserNameLabel;
 @property (nonatomic, strong) DTAttributedLabel *pinnedViewMessageLabel;
+
+#pragma mark - Accessory view
+
+- (void)showAccessoryView;
+- (void)hideAccessoryView;
+- (void)slk_AccessoryViewHeightConstant:(CGFloat)viewHeight;
+
+@property (nonatomic, strong) UIView *accessoryView;
 
 #pragma mark - Customization
 ///------------------------------------------------
