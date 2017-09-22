@@ -1767,11 +1767,11 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
 
 - (void)showAccessoryView
 {
-    [self slk_showReplyView:YES];
+    [self slk_showAccessoryView:YES];
 }
 - (void)hideAccessoryView
 {
-    [self slk_showReplyView:NO];
+    [self slk_showAccessoryView:NO];
 }
 - (void)slk_hideAccessoryViewIfNeeded
 {
@@ -1786,7 +1786,7 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
     
     CGFloat viewHeight = show ? 80.0 : 0.0;
     
-    if (self.replyViewHC.constant == viewHeight) {
+    if (self.accessoryViewHC.constant == viewHeight) {
         return;
     }
     
