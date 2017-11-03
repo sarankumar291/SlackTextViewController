@@ -424,6 +424,9 @@ NS_CLASS_AVAILABLE_IOS(7_0) @interface SLKTextViewController : UIViewController 
 /** YES if the accessory view is shown. */
 @property (nonatomic, getter = isShowingAccessoryView) BOOL showingAccessoryView;
 
+/** YES if the typing view is shown. */
+@property (nonatomic, getter = isShowingAccessoryView) BOOL showingTypingView;
+
 /** The recently found prefix symbol used as prefix for autocompletion mode. */
 @property (nonatomic, copy) NSString *_Nullable foundPrefix;
 
@@ -584,6 +587,14 @@ NS_CLASS_AVAILABLE_IOS(7_0) @interface SLKTextViewController : UIViewController 
 - (void)slk_AccessoryViewHeightConstant:(CGFloat)viewHeight;
 
 @property (nonatomic, strong) UIView *accessoryView;
+
+#pragma mark - Typing view
+
+- (void)showTypingView;
+- (void)hideTypingView;
+
+@property (nonatomic, strong) UIView *typingView;
+@property (nonatomic, strong) UIImageView *typingIcon;
 
 #pragma mark - Customization
 ///------------------------------------------------

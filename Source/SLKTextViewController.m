@@ -44,6 +44,7 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
 @property (nonatomic, strong) NSLayoutConstraint *keyboardHC;
 @property (nonatomic, strong) NSLayoutConstraint *pinnedViewHC;
 @property (nonatomic, strong) NSLayoutConstraint *accessoryViewHC;
+@property (nonatomic, strong) NSLayoutConstraint *typingViewHC;
 
 // YES if the user is moving the keyboard with a gesture
 @property (nonatomic, assign, getter = isMovingKeyboard) BOOL movingKeyboard;
@@ -79,6 +80,9 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
 @synthesize presentedInPopover = _presentedInPopover;
 @synthesize accessoryView = _accessoryView;
 @synthesize showingAccessoryView = _showingAccessoryView;
+@synthesize typingView = _typingView;
+@synthesize showingTypingView = _showingTypingView;
+@synthesize typingIcon = _typingIcon;
 
 #pragma mark - Initializer
 
@@ -184,6 +188,7 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
     [super viewDidLoad];
     
     [self.view addSubview:self.scrollViewProxy];
+    [self.view addSubview:self.typingView];
     [self.view addSubview:self.pinnedView];
     [self.view addSubview:self.accessoryView];
     [self.view addSubview:self.autoCompletionView];
@@ -308,6 +313,16 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
         _accessoryView.backgroundColor = [UIColor whiteColor];
     }
     return _accessoryView;
+}
+
+- (UIView *)typingView
+{
+    if (!_typingView) {
+        _typingView = [[UIView alloc] initWithFrame:CGRectZero];
+        _typingView.translatesAutoresizingMaskIntoConstraints = NO;
+        _typingView.backgroundColor = [UIColor whiteColor];
+    }
+    return _typingView;
 }
 
 - (UITableView *)autoCompletionView
@@ -468,6 +483,7 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
     CGFloat scrollViewHeight = CGRectGetHeight(self.view.bounds);
     
     scrollViewHeight -= self.keyboardHC.constant;
+    scrollViewHeight -= self.typingViewHC.constant;
     scrollViewHeight -= self.textInputbarHC.constant;
     scrollViewHeight -= self.autoCompletionViewHC.constant;
     scrollViewHeight -= self.pinnedViewHC.constant;
@@ -1807,6 +1823,55 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
     [self.view layoutIfNeeded];
 }
 
+#pragma mark - Typing View
+
+- (void)showTypingView
+{
+    [self slk_showTypingView:YES];
+}
+- (void)hideTypingView
+{
+    [self slk_showTypingView:NO];
+}
+- (void)slk_hideTypingViewIfNeeded
+{
+    if (self.showingTypingView) {
+        [self slk_showTypingView:NO];
+    }
+}
+- (void)slk_showTypingView:(BOOL)show
+{
+    self.showingTypingView = show;
+    
+    CGFloat viewHeight = show ? 50.0 : 0.0;
+    if (self.typingViewHC.constant == viewHeight) {
+        return;
+    }
+    self.typingViewHC.constant = viewHeight;
+    [self.view slk_animateLayoutIfNeededWithBounce:self.bounces
+                                           options:UIViewAnimationOptionCurveEaseInOut|UIViewAnimationOptionLayoutSubviews|UIViewAnimationOptionBeginFromCurrentState
+                                        animations:NULL];
+    [self.view layoutIfNeeded];
+    if (show == true) {
+        // Adding Image
+        _typingIcon = [[UIImageView alloc] initWithFrame:CGRectZero];
+        _typingIcon.translatesAutoresizingMaskIntoConstraints = NO;
+        [_typingView addSubview:_typingIcon];
+        [_typingView addConstraint:[NSLayoutConstraint constraintWithItem:_typingIcon attribute:NSLayoutAttributeLeading relatedBy:NSLayoutRelationEqual toItem:_typingView attribute:NSLayoutAttributeLeading multiplier:1 constant:50]];
+        [_typingView addConstraint:[NSLayoutConstraint constraintWithItem:_typingIcon attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeHeight multiplier:1 constant:35]];
+        [_typingView addConstraint:[NSLayoutConstraint constraintWithItem:_typingIcon attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeWidth multiplier:1 constant:70]];
+        [_typingView addConstraint:[NSLayoutConstraint constraintWithItem:_typingIcon
+                                                                attribute:NSLayoutAttributeCenterY
+                                                                relatedBy:NSLayoutRelationEqual
+                                                                   toItem:_typingView
+                                                                attribute:NSLayoutAttributeCenterY
+                                                               multiplier:1
+                                                                 constant:0]];
+    } else {
+        [self.typingIcon removeFromSuperview];
+    }
+}
+
 #pragma mark - Auto-Completion Text Processing
 
 - (void)registerPrefixesForAutoCompletion:(NSArray <NSString *> *)prefixes
@@ -2423,6 +2488,7 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
 - (void)slk_setupViewConstraints
 {
     NSDictionary *views = @{@"scrollView": self.scrollViewProxy,
+                            @"typingView": self.typingView,
                             @"pinnedView": self.pinnedView,
                             @"accessoryView": self.accessoryView,
                             @"autoCompletionView": self.autoCompletionView,
@@ -2430,18 +2496,20 @@ CGFloat const SLKAutoCompletionViewDefaultHeight = 140.0;
                             @"textInputbar": self.textInputbar,
                             };
     
-    [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[scrollView(0@750)][typingIndicatorView(0)]-0@999-[textInputbar(0)]|" options:0 metrics:nil views:views]];
+    [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[scrollView(0@750)][typingView(0)][typingIndicatorView(0)]-0@999-[textInputbar(0)]|" options:0 metrics:nil views:views]];
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-(>=0)-[autoCompletionView(0@750)][typingIndicatorView]" options:0 metrics:nil views:views]];
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-10-[pinnedView(0@750)]" options:0 metrics:nil views:views]];
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[scrollView]|" options:0 metrics:nil views:views]];
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-10-[pinnedView]-10-|" options:0 metrics:nil views:views]];
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[autoCompletionView]|" options:0 metrics:nil views:views]];
+    [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[typingView]|" options:0 metrics:nil views:views]];
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[typingIndicatorView]|" options:0 metrics:nil views:views]];
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[textInputbar]|" options:0 metrics:nil views:views]];
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-(>=0)-[accessoryView(0@750)][typingIndicatorView]" options:0 metrics:nil views:views]];
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-0-[accessoryView]-0-|" options:0 metrics:nil views:views]];
     
     self.scrollViewHC = [self.view slk_constraintForAttribute:NSLayoutAttributeHeight firstItem:self.scrollViewProxy secondItem:nil];
+    self.typingViewHC = [self.view slk_constraintForAttribute:NSLayoutAttributeHeight firstItem:self.typingView secondItem:nil];
     self.pinnedViewHC = [self.view slk_constraintForAttribute:NSLayoutAttributeHeight firstItem:self.pinnedView secondItem:nil];
     self.autoCompletionViewHC = [self.view slk_constraintForAttribute:NSLayoutAttributeHeight firstItem:self.autoCompletionView secondItem:nil];
     self.typingIndicatorViewHC = [self.view slk_constraintForAttribute:NSLayoutAttributeHeight firstItem:self.typingIndicatorProxyView secondItem:nil];
